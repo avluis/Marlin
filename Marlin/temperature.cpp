@@ -84,7 +84,7 @@ unsigned char soft_pwm_bed;
     static unsigned long thermal_runaway_timer[4]; // = {0,0,0,0};
   #endif
   #if HAS_BED_THERMAL_PROTECTION
-    static TRState thermal_runaway_bed_state_machine = { TRInactive, TRInactive, TRInactive, TRInactive };
+    static TRState thermal_runaway_bed_state_machine = TRInactive;
     static unsigned long thermal_runaway_bed_timer;
   #endif
 #endif
@@ -1556,7 +1556,7 @@ ISR(TIMER0_COMPB_vect) {
       #else
         #define GE2 >=
       #endif
-      if (current_temperature_raw[2] GE2 (maxttemp_raw[2]) max_temp_error(2);
+      if (current_temperature_raw[2] GE2 maxttemp_raw[2]) max_temp_error(2);
       if (minttemp_raw[2] GE2 current_temperature_raw[2]) min_temp_error(2);
     #endif // TEMP_SENSOR_2
 

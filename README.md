@@ -31,14 +31,14 @@ We are actively looking for testers. So please try the current development versi
 
 ## Contact
 
-__IRC:__ #marlin-firmware @freenode ([WebChat Client](https://webchat.freenode.net/?channels=marlin-firmware))
+__Google Hangout:__ <a href="https://plus.google.com/hangouts/_/g2wp5duzb2y6ahikg6tmwao3kua" target="_blank">Hagnout</a>
 
 ## Credits
 
 The current Marlin dev team consists of:
 
- - Erik van der Zalm ([@ErikZalm](https://github.com/ErikZalm))
- - [@daid](https://github.com/daid)
+ - Scott Lahteine [@thinkyhead]
+ - 
 
 Sprinters lead developers are Kliment and caru.
 Grbl's lead developer is Simen Svale Skogsrud.
