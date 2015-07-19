@@ -1,5 +1,5 @@
 /**
- * Brainwave Pro pin assignments (AT90USB186)
+ * Brainwave Pro pin assignments (AT90USB1286)
  *
  * Requires hardware bundle for Arduino:
  * https://github.com/unrepentantgeek/brainwave-arduino
@@ -9,11 +9,13 @@
   #error Oops!  Make sure you have 'Brainwave Pro' selected from the 'Tools -> Boards' menu.
 #endif
 
+#include "fastio.h"
+
 #ifndef AT90USBxx_TEENSYPP_ASSIGNMENTS  // use Teensyduino Teensy++2.0 pin assignments instead of Marlin alphabetical.
   #error  Uncomment #define AT90USBxx_TEENSYPP_ASSIGNMENTS in fastio.h for this config
 #endif
 
-#define AT90USB 1286  // Disable MarlinSerial etc.
+#define LARGE_FLASH        true
 
 #define X_STEP_PIN         33
 #define X_DIR_PIN          32

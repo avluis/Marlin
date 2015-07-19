@@ -20,17 +20,19 @@
 
 #include "fastio.h"
 #include "Configuration.h"
+#include "pins.h"
 
-#if (ARDUINO >= 100)
-  #include "Arduino.h"
-#else
-  #include "WProgram.h"
+#ifndef SANITYCHECK_H
+  #error Your Configuration.h and Configuration_adv.h files are outdated!
 #endif
+
+#include "Arduino.h"
 
 #define BIT(b) (1<<(b))
 #define TEST(n,b) (((n)&BIT(b))!=0)
+#define SET_BIT(n,b,value) (n) ^= ((-value)^(n)) & (BIT(b))
 #define RADIANS(d) ((d)*M_PI/180.0)
-#define DEGREES(r) ((d)*180.0/M_PI)
+#define DEGREES(r) ((r)*180.0/M_PI)
 #define NOLESS(v,n) do{ if (v < n) v = n; }while(0)
 #define NOMORE(v,n) do{ if (v > n) v = n; }while(0)
 
@@ -41,7 +43,7 @@ typedef unsigned long millis_t;
   #define analogInputToDigitalPin(p) ((p) + 0xA0)
 #endif
 
-#ifdef AT90USB
+#ifdef USBCON
   #include "HardwareSerial.h"
 #endif
 
@@ -56,7 +58,7 @@ typedef unsigned long millis_t;
 
 #include "WString.h"
 
-#ifdef AT90USB
+#ifdef USBCON
   #ifdef BTENABLED
     #define MYSERIAL bt
   #else
@@ -73,8 +75,8 @@ typedef unsigned long millis_t;
 #define SERIAL_PROTOCOL(x) MYSERIAL.print(x)
 #define SERIAL_PROTOCOL_F(x,y) MYSERIAL.print(x,y)
 #define SERIAL_PROTOCOLPGM(x) serialprintPGM(PSTR(x))
-#define SERIAL_PROTOCOLLN(x) do{ MYSERIAL.print(x),MYSERIAL.write('\n'); }while(0)
-#define SERIAL_PROTOCOLLNPGM(x) do{ serialprintPGM(PSTR(x)),MYSERIAL.write('\n'); }while(0)
+#define SERIAL_PROTOCOLLN(x) do{ MYSERIAL.print(x); SERIAL_EOL; }while(0)
+#define SERIAL_PROTOCOLLNPGM(x) do{ serialprintPGM(PSTR(x)); SERIAL_EOL; }while(0)
 
 
 extern const char errormagic[] PROGMEM;
@@ -109,7 +111,8 @@ FORCE_INLINE void serialprintPGM(const char *str) {
 }
 
 void get_command();
-void process_commands();
+
+void idle(); // the standard idle routine calls manage_inactivity(false)
 
 void manage_inactivity(bool ignore_stepper_queue=false);
 
@@ -193,30 +196,19 @@ void manage_inactivity(bool ignore_stepper_queue=false);
  * A_AXIS and B_AXIS are used by COREXY printers
  * X_HEAD and Y_HEAD is used for systems that don't have a 1:1 relationship between X_AXIS and X Head movement, like CoreXY bots.
  */
-enum AxisEnum {X_AXIS=0, Y_AXIS=1, A_AXIS=0, B_AXIS=1, Z_AXIS=2, E_AXIS=3, X_HEAD=4, Y_HEAD=5};
+enum AxisEnum {X_AXIS=0, A_AXIS=0, Y_AXIS=1, B_AXIS=1, Z_AXIS=2, C_AXIS=2, E_AXIS=3, X_HEAD=4, Y_HEAD=5, Z_HEAD=5};
+
+enum EndstopEnum {X_MIN=0, Y_MIN=1, Z_MIN=2, Z_PROBE=3, X_MAX=4, Y_MAX=5, Z_MAX=6, Z2_MIN=7, Z2_MAX=8};
 
 void enable_all_steppers();
 void disable_all_steppers();
 
 void FlushSerialRequestResend();
-void ClearToSend();
+void ok_to_send();
 
-void get_coordinates();
-#ifdef DELTA
-  void calculate_delta(float cartesian[3]);
-  #ifdef ENABLE_AUTO_BED_LEVELING
-    extern int delta_grid_spacing[2];
-    void adjust_delta(float cartesian[3]);
-  #endif
-  extern float delta[3];
-#endif
-#ifdef SCARA
-  void calculate_delta(float cartesian[3]);
-  void calculate_SCARA_forward_Transform(float f_scara[3]);
-#endif
 void reset_bed_level();
 void prepare_move();
-void kill();
+void kill(const char *);
 void Stop();
 
 #ifdef FILAMENT_RUNOUT_SENSOR
@@ -261,29 +253,37 @@ extern float homing_feedrate[];
 extern bool axis_relative_modes[];
 extern int feedrate_multiplier;
 extern bool volumetric_enabled;
-extern int extruder_multiply[EXTRUDERS]; // sets extrude multiply factor (in percent) for each extruder individually
+extern int extruder_multiplier[EXTRUDERS]; // sets extrude multiply factor (in percent) for each extruder individually
 extern float filament_size[EXTRUDERS]; // cross-sectional area of filament (in millimeters), typically around 1.75 or 2.85, 0 disables the volumetric calculations for the extruder.
 extern float volumetric_multiplier[EXTRUDERS]; // reciprocal of cross-sectional area of filament (in square millimeters), stored this way to reduce computational burden in planner
 extern float current_position[NUM_AXIS];
-extern float home_offset[3];
+extern float home_offset[3]; // axis[n].home_offset
+extern float min_pos[3]; // axis[n].min_pos
+extern float max_pos[3]; // axis[n].max_pos
+extern bool axis_known_position[3]; // axis[n].is_known
 
-#ifdef DELTA
-  extern float endstop_adj[3];
-  extern float delta_radius;
-  extern float delta_diagonal_rod;
-  extern float delta_segments_per_second;
-  void recalc_delta_settings(float radius, float diagonal_rod);
-#elif defined(Z_DUAL_ENDSTOPS)
+#if defined(DELTA) || defined(SCARA)
+  void calculate_delta(float cartesian[3]);
+  #ifdef DELTA
+    extern float delta[3];
+    extern float endstop_adj[3]; // axis[n].endstop_adj
+    extern float delta_radius;
+    extern float delta_diagonal_rod;
+    extern float delta_segments_per_second;
+    void recalc_delta_settings(float radius, float diagonal_rod);
+    #ifdef ENABLE_AUTO_BED_LEVELING
+      extern int delta_grid_spacing[2];
+      void adjust_delta(float cartesian[3]);
+    #endif
+  #elif defined(SCARA)
+    extern float axis_scaling[3];  // Build size scaling
+    void calculate_SCARA_forward_Transform(float f_scara[3]);
+  #endif
+#endif
+
+#ifdef Z_DUAL_ENDSTOPS
   extern float z_endstop_adj;
 #endif
-
-#ifdef SCARA
-  extern float axis_scaling[3];  // Build size scaling
-#endif
-
-extern float min_pos[3];
-extern float max_pos[3];
-extern bool axis_known_position[3];
 
 #ifdef ENABLE_AUTO_BED_LEVELING
   extern float zprobe_zoffset;
@@ -316,7 +316,7 @@ extern int fanSpeed;
 
 #ifdef FWRETRACT
   extern bool autoretract_enabled;
-  extern bool retracted[EXTRUDERS];
+  extern bool retracted[EXTRUDERS]; // extruder[n].retracted
   extern float retract_length, retract_length_swap, retract_feedrate, retract_zlift;
   extern float retract_recover_length, retract_recover_length_swap, retract_recover_feedrate;
 #endif

@@ -22,20 +22,30 @@
     #define NEWPANEL
   #endif
 
-  #if defined(miniVIKI) || defined(VIKI2)
+  #if defined(miniVIKI) || defined(VIKI2) || defined(ELB_FULL_GRAPHIC_CONTROLLER)
     #define ULTRA_LCD  //general LCD support, also 16x2
     #define DOGLCD  // Support for SPI LCD 128x64 (Controller ST7565R graphic Display Family)
     #define ULTIMAKERCONTROLLER //as available from the Ultimaker online store.
 
     #ifdef miniVIKI
       #define DEFAULT_LCD_CONTRAST 95
-    #else
+    #elif defined(VIKI2)
       #define DEFAULT_LCD_CONTRAST 40
+    #elif defined(ELB_FULL_GRAPHIC_CONTROLLER)
+      #define DEFAULT_LCD_CONTRAST 110
+      #define U8GLIB_LM6059_AF
     #endif
 
     #define ENCODER_PULSES_PER_STEP 4
     #define ENCODER_STEPS_PER_MENU_ITEM 1
   #endif
+
+  // Generic support for SSD1306 OLED based LCDs.
+  #if defined(U8GLIB_SSD1306)
+    #define ULTRA_LCD  //general LCD support, also 16x2
+    #define DOGLCD  // Support for I2C LCD 128x64 (Controller SSD1306 graphic Display Family)
+  #endif
+
 
   #ifdef PANEL_ONE
     #define SDSUPPORT
@@ -48,7 +58,7 @@
     #define REPRAP_DISCOUNT_SMART_CONTROLLER
   #endif
 
-  #if defined(ULTIMAKERCONTROLLER) || defined(REPRAP_DISCOUNT_SMART_CONTROLLER) || defined(G3D_PANEL)
+  #if defined(ULTIMAKERCONTROLLER) || defined(REPRAP_DISCOUNT_SMART_CONTROLLER) || defined(G3D_PANEL) || defined(RIGIDBOT_PANEL)
     #define ULTIPANEL
     #define NEWPANEL
   #endif
@@ -80,11 +90,6 @@
 
   // PANELOLU2 LCD with status LEDs, separate encoder and click inputs
   #ifdef LCD_I2C_PANELOLU2
-    // This uses the LiquidTWI2 library v1.2.3 or later ( https://github.com/lincomatic/LiquidTWI2 )
-    // Make sure the LiquidTWI2 directory is placed in the Arduino or Sketchbook libraries subdirectory.
-    // (v1.2.3 no longer requires you to define PANELOLU in the LiquidTWI2.h library header file)
-    // Note: The PANELOLU2 encoder click input can either be directly connected to a pin
-    //       (if BTN_ENC defined to != -1) or read through I2C (when BTN_ENC == -1).
     #define LCD_I2C_TYPE_MCP23017
     #define LCD_I2C_ADDRESS 0x20 // I2C Address of the port expander
     #define LCD_USE_I2C_BUZZER //comment out to disable buzzer on LCD
@@ -194,23 +199,22 @@
     #ifdef U8GLIB_ST7920
       #undef HAS_LCD_CONTRAST
     #endif
+    #ifdef U8GLIB_SSD1306
+      #undef HAS_LCD_CONTRAST
+    #endif  
   #endif
 
 #else // CONFIGURATION_LCD
 
   #define CONDITIONALS_H
 
-  #ifndef AT90USB
+  #include "pins.h"
+
+  #ifndef USBCON
     #define HardwareSerial_h // trick to disable the standard HWserial
   #endif
 
-  #if (ARDUINO >= 100)
-    #include "Arduino.h"
-  #else
-    #include "WProgram.h"
-  #endif
-
-  #include "pins.h"
+  #include "Arduino.h"
 
   /**
    * ENDSTOPPULLUPS
@@ -248,7 +252,6 @@
 
   /**
    * AUTOSET LOCATIONS OF LIMIT SWITCHES
-   * Added by ZetaPhoenix 09-15-2012
    */
   #ifdef MANUAL_HOME_POSITIONS  // Use manual limit switch locations
     #define X_HOME_POS MANUAL_X_HOME_POS
@@ -276,6 +279,15 @@
     #define MAX_PROBE_Y (min(Y_MAX_POS, Y_MAX_POS + Y_PROBE_OFFSET_FROM_EXTRUDER))
   #endif
 
+  #define SERVO_LEVELING (defined(ENABLE_AUTO_BED_LEVELING) && defined(DEACTIVATE_SERVOS_AFTER_MOVE))
+
+   /**
+    * Sled Options
+    */ 
+  #ifdef Z_PROBE_SLED
+    #define Z_SAFE_HOMING
+  #endif
+  
   /**
    * MAX_STEP_FREQUENCY differs for TOSHIBA
    */
@@ -300,7 +312,7 @@
     #define STEPS_PER_CUBIC_MM_E (axis_steps_per_unit[E_AXIS] / EXTRUSION_AREA)
   #endif
 
-  #ifdef ULTIPANEL
+  #if defined(ULTIPANEL) && !defined(ELB_FULL_GRAPHIC_CONTROLLER)
     #undef SDCARDDETECTINVERTED
   #endif
 
@@ -432,6 +444,7 @@
   #define HAS_MICROSTEPS_E0 (PIN_EXISTS(E0_MS1))
   #define HAS_MICROSTEPS_E1 (PIN_EXISTS(E1_MS1))
   #define HAS_MICROSTEPS_E2 (PIN_EXISTS(E2_MS1))
+  #define HAS_STEPPER_RESET (PIN_EXISTS(STEPPER_RESET))
   #define HAS_X_ENABLE (PIN_EXISTS(X_ENABLE))
   #define HAS_X2_ENABLE (PIN_EXISTS(X2_ENABLE))
   #define HAS_Y_ENABLE (PIN_EXISTS(Y_ENABLE))
@@ -487,6 +500,8 @@
   #if HAS_FAN
     #define WRITE_FAN(v) WRITE(FAN_PIN, v)
   #endif
+
+  #define HAS_BUZZER ((defined(BEEPER) && BEEPER >= 0) || defined(LCD_USE_I2C_BUZZER))
 
 #endif //CONFIGURATION_LCD
 #endif //CONDITIONALS_H
