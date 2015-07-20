@@ -56,7 +56,15 @@
 #define Z_STEP_PIN 35
 #define Z_DIR_PIN 47
 #define Z_MIN_PIN 10
-#define Z_MAX_PIN 30
+
+#ifdef Z_PROBE_ENDSTOP
+  #define Z_MAX_PIN -1
+  #define Z_PROBE_PIN 30
+#else
+  #define Z_PROBE_PIN -1
+  #define Z_MAX_PIN 30
+#endif
+
 #define Z_ENABLE_PIN 27
 #define Z_MS1_PIN 68
 #define Z_MS2_PIN 67
@@ -192,10 +200,4 @@
 #ifdef FILAMENT_SENSOR
   //Filip added pin for Filament sensor analog input 
   #define FILWIDTH_PIN        3
-#endif
-
-#ifdef TEMP_STAT_LEDS
-  //PWM-Ext Pins
-  #define STAT_LED_BLUE 4
-  #define STAT_LED_RED 5
 #endif
