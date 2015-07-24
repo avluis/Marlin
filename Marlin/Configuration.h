@@ -23,7 +23,7 @@
 // startup. Implementation of an idea by Prof Braino to inform user that any changes made to this
 // build by the user have been successfully uploaded into firmware.
 #define STRING_VERSION_CONFIG_H __DATE__ " " __TIME__ // build date and time
-#define STRING_CONFIG_H_AUTHOR "(MakerFarm Inc, 10\" i3v Prusa, dacb)" // Who made the changes.
+#define STRING_CONFIG_H_AUTHOR "(Luis Alvarado, MarkerFarm 12\" i3v Prusa w. ABL on RAMBo)" // Who made the changes.
 
 // SERIAL_PORT selects which serial port should be used for communication with the host.
 // This allows the connection of wireless adapters (for instance) to non-default port pins.
@@ -82,7 +82,7 @@
 // 999 = Leapfrog
 
 #ifndef MOTHERBOARD
-#define MOTHERBOARD 33
+#define MOTHERBOARD 301
 #endif
 
 // Define this to set a custom name for your generic Mendel,
@@ -166,7 +166,7 @@
 // When temperature exceeds max temp, your heater will be switched off.
 // This feature exists to protect your hotend from overheating accidentally, but *NOT* from thermistor short/failure!
 // You should use MINTEMP for thermistor short/failure protection.
-#define HEATER_0_MAXTEMP 280
+#define HEATER_0_MAXTEMP 285 // Hexagon Hot-End (allowing room for 280C)
 #define HEATER_1_MAXTEMP 235
 #define HEATER_2_MAXTEMP 235
 #define BED_MAXTEMP 125
@@ -196,19 +196,29 @@
 
 // If you are using a pre-configured hotend then you can use one of the value sets by uncommenting it
 // Ultimaker
-    #define  DEFAULT_Kp 22.2
-    #define  DEFAULT_Ki 1.08
-    #define  DEFAULT_Kd 114
+//  #define  DEFAULT_Kp 22.2
+//  #define  DEFAULT_Ki 1.08
+//  #define  DEFAULT_Kd 114
+    
+// Maker Farm
+//  #define  DEFAULT_Kp 41.33
+//  #define  DEFAULT_Ki 3.71
+//  #define  DEFAULT_Kd 115.11
 
-// MakerGear
-//    #define  DEFAULT_Kp 7.0
-//    #define  DEFAULT_Ki 0.1
-//    #define  DEFAULT_Kd 12
+// Maker Farm - Hexagon Hot End - S250 C10 PID Autotune
+    #define  DEFAULT_Kp 43.39
+    #define  DEFAULT_Ki 3.34
+    #define  DEFAULT_Kd 140.76
 
-// Mendel Parts V9 on 12V
-//    #define  DEFAULT_Kp 63.0
-//    #define  DEFAULT_Ki 2.25
-//    #define  DEFAULT_Kd 440
+  // MakerGear
+  //#define  DEFAULT_Kp 7.0
+  //#define  DEFAULT_Ki 0.1
+  //#define  DEFAULT_Kd 12
+
+  // Mendel Parts V9 on 12V
+  //#define  DEFAULT_Kp 63.0
+  //#define  DEFAULT_Ki 2.25
+  //#define  DEFAULT_Kd 440
 #endif // PIDTEMP
 
 // Bed Temperature Control
@@ -234,9 +244,15 @@
 #ifdef PIDTEMPBED
 //120v 250W silicone heater into 4mm borosilicate (MendelMax 1.5+)
 //from FOPDT model - kp=.39 Tp=405 Tdead=66, Tc set to 79.2, aggressive factor of .15 (vs .1, 1, 10)
-    #define  DEFAULT_bedKp 10.00
-    #define  DEFAULT_bedKi .023
-    #define  DEFAULT_bedKd 305.4
+// #define  DEFAULT_bedKp 10.00
+// #define  DEFAULT_bedKi .023
+// #define  DEFAULT_bedKd 305.4
+    
+  //Maker Farm
+  #define  DEFAULT_bedKp 402.00 //default 188.44
+  #define  DEFAULT_bedKi 78.92 //default 9.31
+  #define  DEFAULT_bedKd 511.90 //default 953.99
+
 
 //120v 250W silicone heater into 4mm borosilicate (MendelMax 1.5+)
 //from pidautotune
@@ -284,15 +300,15 @@ your extruder heater takes 2 minutes to hit the target on heating.
 // uncomment the 2 defines below:
 
 // Parameters for all extruder heaters
-//#define THERMAL_RUNAWAY_PROTECTION_PERIOD 40 //in seconds
-//#define THERMAL_RUNAWAY_PROTECTION_HYSTERESIS 4 // in degree Celsius
+#define THERMAL_RUNAWAY_PROTECTION_PERIOD 40 //in seconds
+#define THERMAL_RUNAWAY_PROTECTION_HYSTERESIS 4 // in degree Celsius
 
 // If you want to enable this feature for your bed heater,
 // uncomment the 2 defines below:
 
 // Parameters for the bed heater
-//#define THERMAL_RUNAWAY_PROTECTION_BED_PERIOD 20 //in seconds
-//#define THERMAL_RUNAWAY_PROTECTION_BED_HYSTERESIS 2 // in degree Celsius
+#define THERMAL_RUNAWAY_PROTECTION_BED_PERIOD 20 //in seconds
+#define THERMAL_RUNAWAY_PROTECTION_BED_HYSTERESIS 2 // in degree Celsius
 //===========================================================================
 
 
@@ -370,12 +386,12 @@ const bool Z_MAX_ENDSTOP_INVERTING = false; // set to true to invert the logic o
 #define max_software_endstops true  // If true, axis won't move to coordinates greater than the defined lengths below.
 
 // Travel limits after homing
-#define X_MAX_POS 250
 #define X_MIN_POS 0
-#define Y_MAX_POS 250
 #define Y_MIN_POS 0
-#define Z_MAX_POS 235
 #define Z_MIN_POS 0
+#define X_MAX_POS 300
+#define Y_MAX_POS 300
+#define Z_MAX_POS 290
 
 #define X_MAX_LENGTH (X_MAX_POS - X_MIN_POS)
 #define Y_MAX_LENGTH (Y_MAX_POS - Y_MIN_POS)
@@ -407,10 +423,10 @@ const bool Z_MAX_ENDSTOP_INVERTING = false; // set to true to invert the logic o
   #ifdef AUTO_BED_LEVELING_GRID
 
     // set the rectangle in which to probe
-    #define LEFT_PROBE_BED_POSITION 75
-    #define RIGHT_PROBE_BED_POSITION 175
-    #define BACK_PROBE_BED_POSITION 175
-    #define FRONT_PROBE_BED_POSITION 50
+    #define LEFT_PROBE_BED_POSITION  20
+    #define RIGHT_PROBE_BED_POSITION 260
+    #define FRONT_PROBE_BED_POSITION 20
+    #define BACK_PROBE_BED_POSITION  260
 
     // set the max number of grid points per dimension
     // The G29 command defaults to 3 if nothing is specified.  But setting the number of probed 
@@ -440,9 +456,9 @@ const bool Z_MAX_ENDSTOP_INVERTING = false; // set to true to invert the logic o
 
 
   // these are the offsets to the probe relative to the extruder tip (Hotend - Probe)
-  #define X_PROBE_OFFSET_FROM_EXTRUDER 31
-  #define Y_PROBE_OFFSET_FROM_EXTRUDER 1.6 
-  #define Z_PROBE_OFFSET_FROM_EXTRUDER -7.84
+  #define X_PROBE_OFFSET_FROM_EXTRUDER  18     // Probe on: -left  +right
+  #define Y_PROBE_OFFSET_FROM_EXTRUDER -18     // Probe on: -front +behind
+  #define Z_PROBE_OFFSET_FROM_EXTRUDER -2.72   // -below (always!)
 
   #define Z_RAISE_BEFORE_HOMING 4       // (in mm) Raise Z before homing (G28) for Probe Clearance.
                                         // Be sure you have this distance over your Z_MAX_POS in case
@@ -459,7 +475,7 @@ const bool Z_MAX_ENDSTOP_INVERTING = false; // set to true to invert the logic o
   //The value is the delay to turn the servo off after powered on - depends on the servo speed; 300ms is good value, but you can try lower it.
   // You MUST HAVE the SERVO_ENDSTOPS defined to use here a value higher than zero otherwise your code will not compile.
 
-//  #define PROBE_SERVO_DEACTIVATION_DELAY 300
+  #define PROBE_SERVO_DEACTIVATION_DELAY 300
 
 
 //If you have enabled the Bed Auto Leveling and are using the same Z Probe for Z Homing,
@@ -495,11 +511,11 @@ const bool Z_MAX_ENDSTOP_INVERTING = false; // set to true to invert the logic o
 
 //// MOVEMENT SETTINGS
 #define NUM_AXIS 4 // The axis order in all axis related arrays is X, Y, Z, E
-#define HOMING_FEEDRATE {50*60, 50*60, 50, 0}  // set the homing speeds (mm/min)
+#define HOMING_FEEDRATE {50*60, 50*60, 4*60, 0}  // set the homing speeds (mm/min)
 
 // default settings
 
-#define DEFAULT_AXIS_STEPS_PER_UNIT   {80, 80, 4000, 893} // customized for MakerFarm i3v 10"
+#define DEFAULT_AXIS_STEPS_PER_UNIT   {80, 80, 4000, 995} // customized for my MakerFarm i3v 12"
 #define DEFAULT_MAX_FEEDRATE          {250, 250, 2, 22}    // (mm/sec)
 #define DEFAULT_MAX_ACCELERATION      {1000,1000,5,1000}    // X, Y, Z, E maximum start speed for accelerated moves. E default values are good for Skeinforge 40+, for older versions raise them a lot.
 
@@ -541,14 +557,14 @@ const bool Z_MAX_ENDSTOP_INVERTING = false; // set to true to invert the logic o
 // please keep turned on if you can.
 #define EEPROM_CHITCHAT
 
-// Preheat Constant
-#define PLA_PREHEAT_HOTEND_TEMP 195 
+// Preheat Constants
+#define PLA_PREHEAT_HOTEND_TEMP 180
 #define PLA_PREHEAT_HPB_TEMP 70
-#define PLA_PREHEAT_FAN_SPEED 255   // Insert Value between 0 and 255
+#define PLA_PREHEAT_FAN_SPEED 0   // Insert Value between 0 and 255
 
-#define ABS_PREHEAT_HOTEND_TEMP 225
+#define ABS_PREHEAT_HOTEND_TEMP 240
 #define ABS_PREHEAT_HPB_TEMP 110
-#define ABS_PREHEAT_FAN_SPEED 255   // Insert Value between 0 and 255
+#define ABS_PREHEAT_FAN_SPEED 0   // Insert Value between 0 and 255
 
 //LCD and SD support
 //#define ULTRA_LCD  //general LCD support, also 16x2
@@ -556,12 +572,12 @@ const bool Z_MAX_ENDSTOP_INVERTING = false; // set to true to invert the logic o
 //#define SDSUPPORT // Enable SD Card Support in Hardware Console
 //#define SDSLOW // Use slower SD transfer mode (not normally needed - uncomment if you're getting volume init error)
 //#define SD_CHECK_AND_RETRY // Use CRC checks and retries on the SD communication
-//#define ENCODER_PULSES_PER_STEP 1 // Increase if you have a high resolution encoder
-//#define ENCODER_STEPS_PER_MENU_ITEM 5 // Set according to ENCODER_PULSES_PER_STEP or your liking
+#define ENCODER_PULSES_PER_STEP 1 // Increase if you have a high resolution encoder
+#define ENCODER_STEPS_PER_MENU_ITEM 5 // Set according to ENCODER_PULSES_PER_STEP or your liking
 //#define ULTIMAKERCONTROLLER //as available from the Ultimaker online store.
 //#define ULTIPANEL  //the UltiPanel as on Thingiverse
-//#define LCD_FEEDBACK_FREQUENCY_HZ 1000	// this is the tone frequency the buzzer plays when on UI feedback. ie Screen Click
-//#define LCD_FEEDBACK_FREQUENCY_DURATION_MS 100 // the duration the buzzer plays the UI feedback sound. ie Screen Click
+#define LCD_FEEDBACK_FREQUENCY_HZ 1000	// this is the tone frequency the buzzer plays when on UI feedback. ie Screen Click
+#define LCD_FEEDBACK_FREQUENCY_DURATION_MS 100 // the duration the buzzer plays the UI feedback sound. ie Screen Click
 
 // The MaKr3d Makr-Panel with graphic controller and SD support
 // http://reprap.org/wiki/MaKr3d_MaKrPanel
@@ -569,7 +585,7 @@ const bool Z_MAX_ENDSTOP_INVERTING = false; // set to true to invert the logic o
 
 // The RepRapDiscount Smart Controller (white PCB)
 // http://reprap.org/wiki/RepRapDiscount_Smart_Controller
-#define REPRAP_DISCOUNT_SMART_CONTROLLER
+//#define REPRAP_DISCOUNT_SMART_CONTROLLER
 
 // The GADGETS3D G3D LCD/SD Controller (blue PCB)
 // http://reprap.org/wiki/RAMPS_1.3/1.4_GADGETS3D_Shield_with_Panel
@@ -579,7 +595,7 @@ const bool Z_MAX_ENDSTOP_INVERTING = false; // set to true to invert the logic o
 // http://reprap.org/wiki/RepRapDiscount_Full_Graphic_Smart_Controller
 //
 // ==> REMEMBER TO INSTALL U8glib to your ARDUINO library folder: http://code.google.com/p/u8glib/wiki/u8glib
-//#define REPRAP_DISCOUNT_FULL_GRAPHIC_SMART_CONTROLLER
+#define REPRAP_DISCOUNT_FULL_GRAPHIC_SMART_CONTROLLER
 
 // The RepRapWorld REPRAPWORLD_KEYPAD v1.1
 // http://reprapworld.com/?products_details&products_id=202&cPath=1591_1626
@@ -763,7 +779,7 @@ const bool Z_MAX_ENDSTOP_INVERTING = false; // set to true to invert the logic o
 // leaving it undefined or defining as 0 will disable the servo subsystem
 // If unsure, leave commented / disabled
 //
-#define NUM_SERVOS 3 // Servo index starts with 0 for M280 command
+#define NUM_SERVOS 1 // Servo index starts with 0 for M280 command
 
 // Servo Endstops
 //
@@ -771,7 +787,7 @@ const bool Z_MAX_ENDSTOP_INVERTING = false; // set to true to invert the logic o
 // Use M206 command to correct for switch height offset to actual nozzle height. Store that setting with M500.
 //
 #define SERVO_ENDSTOPS {-1, -1, 0} // Servo index for X, Y, Z. Disable with -1
-#define SERVO_ENDSTOP_ANGLES {0,0, 0,0, 96, 10} // X,Y,Z Axis Extend and Retract angles
+#define SERVO_ENDSTOP_ANGLES {0,0, 0,0, 82,0} // X,Y,Z Axis Extend and Retract angles
 
 #include "Configuration_adv.h"
 #include "thermistortables.h"

@@ -2262,13 +2262,41 @@ DaveX plan for Teensylu/printrboard-type pinouts (ref teensylu & sprinter) for a
 /*****************************************************************
 * Rambo Pin Assignments
 ******************************************************************/
-
 #ifndef __AVR_ATmega2560__
-#error Oops!  Make sure you have 'Arduino Mega 2560' selected from the 'Tools -> Boards' menu.
+  #error Oops!  Make sure you have 'Arduino Mega 2560' selected from the 'Tools -> Boards' menu.
 #endif
 
 #define LARGE_FLASH true
 
+// Servo support
+#ifdef NUM_SERVOS
+  #define SERVO0_PIN       22 //motor header MX1
+  #if NUM_SERVOS > 1
+    #define SERVO1_PIN     23 //Motor header MX2
+    #if NUM_SERVOS > 2
+      #define SERVO2_PIN   24 //Motor header MX3
+//      #if NUM_SERVOS > 3
+//        #define SERVO2_PIN  5 //pwm header pin 5
+//      #endif
+    #endif
+  #endif
+#endif
+
+#ifdef Z_PROBE_SLED
+  #define SLED_PIN         -1
+#endif
+
+#undef X_MS1_PIN
+#undef X_MS2_PIN
+#undef Y_MS1_PIN
+#undef Y_MS2_PIN
+#undef Z_MS1_PIN
+#undef Z_MS2_PIN
+#undef E0_MS1_PIN
+#undef E0_MS2_PIN
+#undef E1_MS1_PIN
+#undef E1_MS2_PIN
+ 
 #define X_STEP_PIN 37
 #define X_DIR_PIN 48
 #define X_MIN_PIN 12
@@ -2288,7 +2316,15 @@ DaveX plan for Teensylu/printrboard-type pinouts (ref teensylu & sprinter) for a
 #define Z_STEP_PIN 35
 #define Z_DIR_PIN 47
 #define Z_MIN_PIN 10
-#define Z_MAX_PIN 30
+
+#ifdef Z_PROBE_ENDSTOP
+  #define Z_MAX_PIN -1
+  #define Z_PROBE_PIN 30
+#else
+  #define Z_PROBE_PIN -1
+  #define Z_MAX_PIN 30
+#endif
+
 #define Z_ENABLE_PIN 27
 #define Z_MS1_PIN 68
 #define Z_MS2_PIN 67
@@ -2303,10 +2339,11 @@ DaveX plan for Teensylu/printrboard-type pinouts (ref teensylu & sprinter) for a
 #define TEMP_1_PIN 1
 
 #ifdef BARICUDA
-#define HEATER_2_PIN 6
+  #define HEATER_2_PIN 6
 #else
-#define HEATER_2_PIN -1
+  #define HEATER_2_PIN -1
 #endif
+
 #define TEMP_2_PIN -1
 
 #define E0_STEP_PIN         34
@@ -2321,13 +2358,21 @@ DaveX plan for Teensylu/printrboard-type pinouts (ref teensylu & sprinter) for a
 #define E1_MS1_PIN 63
 #define E1_MS2_PIN 64
 
+#undef DIGIPOTSS_PIN
 #define DIGIPOTSS_PIN 38
 #define DIGIPOT_CHANNELS {4,5,3,0,1} // X Y Z E0 E1 digipot channels to stepper driver mapping
 
 #define SDPOWER            -1
 #define SDSS               53
 #define LED_PIN            13
-#define FAN_PIN            8
+#define FAN_PIN            6 //2  MOSFET is turning on the fan when off on FAN 2 pin so using FAN 1 instead
+
+/**********************************************************
+  Fan Pins
+  Fan_0 8
+  Fan_1 6
+  Fan_2 2
+***********************************************************/
 #define PS_ON_PIN          4
 #define KILL_PIN           -1 //80 with Smart Controller LCD
 #define SUICIDE_PIN        -1  //PIN that has to be turned on right after start, to keep power flowing.
@@ -2345,8 +2390,13 @@ DaveX plan for Teensylu/printrboard-type pinouts (ref teensylu & sprinter) for a
     #define LCD_PINS_D7 75
 
     //buttons are directly attached using AUX-2
-    #define BTN_EN1 76
-    #define BTN_EN2 77
+    #ifdef ENCODER_INVERT
+      #define BTN_EN1 77
+      #define BTN_EN2 76
+    #else
+      #define BTN_EN1 76
+      #define BTN_EN2 77
+    #endif
     #define BTN_ENC 78  //the click
 
     #define BLEN_C 2
@@ -2355,12 +2405,7 @@ DaveX plan for Teensylu/printrboard-type pinouts (ref teensylu & sprinter) for a
 
     #define SDCARDDETECT 81    // Ramps does not use this port
 
-    //encoder rotation values
-    #define encrot0 0
-    #define encrot1 2
-    #define encrot2 3
-    #define encrot3 1
-  #else //old style panel with shift register
+  #else //!NEWPANEL - old style panel with shift register
     //arduino pin witch triggers an piezzo beeper
     #define BEEPER 33    No Beeper added
     //buttons are attached to a shift register
@@ -2377,12 +2422,6 @@ DaveX plan for Teensylu/printrboard-type pinouts (ref teensylu & sprinter) for a
     #define LCD_PINS_D6 27
     #define LCD_PINS_D7 29
 
-    //encoder rotation values
-    #define encrot0 0
-    #define encrot1 2
-    #define encrot2 3
-    #define encrot3 1
-
     //bits in the shift register that carry the buttons for:
     // left up center down right red
     #define BL_LE 7
@@ -2393,11 +2432,37 @@ DaveX plan for Teensylu/printrboard-type pinouts (ref teensylu & sprinter) for a
     #define BL_ST 2
     #define BLEN_B 1
     #define BLEN_A 0
+
+  #endif // !NEWPANEL
+
+#endif // ULTRA_LCD
+
+#if defined(VIKI2) || defined(miniVIKI)
+ #define BEEPER 44
+ // Pins for DOGM SPI LCD Support
+ #define DOGLCD_A0  70 
+ #define DOGLCD_CS  71 
+ #define LCD_SCREEN_ROT_180
+  
+ //The encoder and click button 
+ #define BTN_EN1 85 
+ #define BTN_EN2 84
+ #define BTN_ENC 83  //the click switch
+
+ #define SDCARDDETECT -1 // Pin 72 if using easy adapter board   
+
+  #ifdef TEMP_STAT_LEDS
+   #define STAT_LED_RED      22
+   #define STAT_LED_BLUE     32 
   #endif
-#endif //ULTRA_LCD
+#endif // VIKI2/miniVIKI
 
+#ifdef FILAMENT_SENSOR
+  //Filip added pin for Filament sensor analog input 
+  #define FILWIDTH_PIN        3
+#endif //FILAMENT_SENSOR
 
-#endif
+#endif // RAMBO
 
 /****************************************************************************************
 * MegaTronics
