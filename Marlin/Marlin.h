@@ -28,14 +28,6 @@
 
 #include "Arduino.h"
 
-#define BIT(b) (1<<(b))
-#define TEST(n,b) (((n)&BIT(b))!=0)
-#define SET_BIT(n,b,value) (n) ^= ((-value)^(n)) & (BIT(b))
-#define RADIANS(d) ((d)*M_PI/180.0)
-#define DEGREES(r) ((r)*180.0/M_PI)
-#define NOLESS(v,n) do{ if (v < n) v = n; }while(0)
-#define NOMORE(v,n) do{ if (v > n) v = n; }while(0)
-
 typedef unsigned long millis_t;
 
 // Arduino < 1.0.0 does not define this, so we need to do it ourselves
@@ -96,6 +88,8 @@ extern const char echomagic[] PROGMEM;
 
 #define SERIAL_ECHOPAIR(name,value) do{ serial_echopair_P(PSTR(name),(value)); }while(0)
 
+void serial_echopair_P(const char *s_P, int v);
+void serial_echopair_P(const char *s_P, long v);
 void serial_echopair_P(const char *s_P, float v);
 void serial_echopair_P(const char *s_P, double v);
 void serial_echopair_P(const char *s_P, unsigned long v);
@@ -249,7 +243,6 @@ inline void refresh_cmd_timeout() { previous_cmd_ms = millis(); }
   #define CRITICAL_SECTION_END    SREG = _sreg;
 #endif
 
-extern float homing_feedrate[];
 extern bool axis_relative_modes[];
 extern int feedrate_multiplier;
 extern bool volumetric_enabled;

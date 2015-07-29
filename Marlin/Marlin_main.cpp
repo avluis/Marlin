@@ -213,6 +213,7 @@
  * ************* SCARA End ***************
  *
  * ************ Custom codes - This can change to suit future G-code regulations
+ * M100 - Watch Free Memory (For Debugging Only)
  * M851 - Set probe's Z offset (mm above extruder -- The value will always be negative)
 
 
@@ -224,6 +225,10 @@
  * T0-T3 - Select a tool by index (usually an extruder) [ F<mm/min> ]
  *
  */
+
+#ifdef M100_FREE_MEMORY_WATCHER
+  void gcode_M100();
+#endif
 
 #ifdef SDSUPPORT
   CardReader card;
@@ -246,14 +251,14 @@ static int cmd_queue_index_w = 0;
 static int commands_in_queue = 0;
 static char command_queue[BUFSIZE][MAX_CMD_SIZE];
 
-float homing_feedrate[] = HOMING_FEEDRATE;
+const float homing_feedrate[] = HOMING_FEEDRATE;
 bool axis_relative_modes[] = AXIS_RELATIVE_MODES;
 int feedrate_multiplier = 100; //100->1 200->2
 int saved_feedrate_multiplier;
-int extruder_multiplier[EXTRUDERS] = ARRAY_BY_EXTRUDERS(100, 100, 100, 100);
+int extruder_multiplier[EXTRUDERS] = ARRAY_BY_EXTRUDERS1(100);
 bool volumetric_enabled = false;
-float filament_size[EXTRUDERS] = ARRAY_BY_EXTRUDERS(DEFAULT_NOMINAL_FILAMENT_DIA, DEFAULT_NOMINAL_FILAMENT_DIA, DEFAULT_NOMINAL_FILAMENT_DIA, DEFAULT_NOMINAL_FILAMENT_DIA);
-float volumetric_multiplier[EXTRUDERS] = ARRAY_BY_EXTRUDERS(1.0, 1.0, 1.0, 1.0);
+float filament_size[EXTRUDERS] = ARRAY_BY_EXTRUDERS1(DEFAULT_NOMINAL_FILAMENT_DIA);
+float volumetric_multiplier[EXTRUDERS] = ARRAY_BY_EXTRUDERS1(1.0);
 float home_offset[3] = { 0 };
 float min_pos[3] = { X_MIN_POS, Y_MIN_POS, Z_MIN_POS };
 float max_pos[3] = { X_MAX_POS, Y_MAX_POS, Z_MAX_POS };
@@ -310,8 +315,8 @@ bool target_direction;
 #endif
 
 #ifdef SERVO_ENDSTOPS
-  int servo_endstops[] = SERVO_ENDSTOPS;
-  int servo_endstop_angles[] = SERVO_ENDSTOP_ANGLES;
+  const int servo_endstops[] = SERVO_ENDSTOPS;
+  const int servo_endstop_angles[] = SERVO_ENDSTOP_ANGLES;
 #endif
 
 #ifdef BARICUDA
@@ -414,6 +419,8 @@ void plan_arc(float target[NUM_AXIS], float *offset, uint8_t clockwise);
 
 bool setTargetedHotend(int code);
 
+void serial_echopair_P(const char *s_P, int v)           { serialprintPGM(s_P); SERIAL_ECHO(v); }
+void serial_echopair_P(const char *s_P, long v)          { serialprintPGM(s_P); SERIAL_ECHO(v); }
 void serial_echopair_P(const char *s_P, float v)         { serialprintPGM(s_P); SERIAL_ECHO(v); }
 void serial_echopair_P(const char *s_P, double v)        { serialprintPGM(s_P); SERIAL_ECHO(v); }
 void serial_echopair_P(const char *s_P, unsigned long v) { serialprintPGM(s_P); SERIAL_ECHO(v); }
@@ -555,22 +562,26 @@ void suicide() {
 void servo_init() {
   #if NUM_SERVOS >= 1 && HAS_SERVO_0
     servo[0].attach(SERVO0_PIN);
+    servo[0].detach(); // Just set up the pin. We don't have a position yet. Don't move to a random position.
   #endif
   #if NUM_SERVOS >= 2 && HAS_SERVO_1
     servo[1].attach(SERVO1_PIN);
+    servo[1].detach();
   #endif
   #if NUM_SERVOS >= 3 && HAS_SERVO_2
     servo[2].attach(SERVO2_PIN);
+    servo[2].detach();
   #endif
   #if NUM_SERVOS >= 4 && HAS_SERVO_3
     servo[3].attach(SERVO3_PIN);
+    servo[3].detach();
   #endif
 
   // Set position of Servo Endstops that are defined
   #ifdef SERVO_ENDSTOPS
     for (int i = 0; i < 3; i++)
       if (servo_endstops[i] >= 0)
-        servo[servo_endstops[i]].move(0, servo_endstop_angles[i * 2 + 1]);
+        servo[servo_endstops[i]].move(servo_endstop_angles[i * 2 + 1]);
   #endif
 
 }
@@ -1096,12 +1107,13 @@ static void set_axis_is_at_home(AxisEnum axis) {
  */
 inline void set_homing_bump_feedrate(AxisEnum axis) {
   const int homing_bump_divisor[] = HOMING_BUMP_DIVISOR;
-  if (homing_bump_divisor[axis] >= 1)
-    feedrate = homing_feedrate[axis] / homing_bump_divisor[axis];
-  else {
-    feedrate = homing_feedrate[axis] / 10;
-    SERIAL_ECHOLN("Warning: The Homing Bump Feedrate Divisor cannot be less than 1");
+  int hbd = homing_bump_divisor[axis];
+  if (hbd < 1) {
+    hbd = 10;
+    SERIAL_ECHO_START;
+    SERIAL_ECHOLNPGM("Warning: Homing Bump Divisor < 1");
   }
+  feedrate = homing_feedrate[axis] / hbd;
 }
 inline void line_to_current_position() {
   plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS], feedrate/60, active_extruder);
@@ -1295,6 +1307,10 @@ static void setup_for_endstop_move() {
     feedrate = oldFeedRate;
   }
 
+  inline void do_blocking_move_to_xy(float x, float y) { do_blocking_move_to(x, y, current_position[Z_AXIS]); }
+  inline void do_blocking_move_to_x(float x) { do_blocking_move_to(x, current_position[Y_AXIS], current_position[Z_AXIS]); }
+  inline void do_blocking_move_to_z(float z) { do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS], z); }
+
   static void clean_up_after_endstop_move() {
     #ifdef ENDSTOPS_ONLY_FOR_HOMING
       enable_endstops(false);
@@ -1309,10 +1325,7 @@ static void setup_for_endstop_move() {
     #ifdef SERVO_ENDSTOPS
 
       // Engage Z Servo endstop if enabled
-      if (servo_endstops[Z_AXIS] >= 0) {
-        Servo *srv = &servo[servo_endstops[Z_AXIS]];
-        srv->move(0, servo_endstop_angles[Z_AXIS * 2]);
-      }
+      if (servo_endstops[Z_AXIS] >= 0) servo[servo_endstops[Z_AXIS]].move(servo_endstop_angles[Z_AXIS * 2]);
 
     #elif defined(Z_PROBE_ALLEN_KEY)
       feedrate = Z_PROBE_ALLEN_KEY_DEPLOY_1_FEEDRATE;
@@ -1406,22 +1419,24 @@ static void setup_for_endstop_move() {
 
         #if Z_RAISE_AFTER_PROBING > 0
           if (doRaise) {
-            do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS] + Z_RAISE_AFTER_PROBING); // this also updates current_position
+            do_blocking_move_to_z(current_position[Z_AXIS] + Z_RAISE_AFTER_PROBING); // this also updates current_position
             st_synchronize();
           }
         #endif
 
         // Change the Z servo angle
-        Servo *srv = &servo[servo_endstops[Z_AXIS]];
-        srv->move(0, servo_endstop_angles[Z_AXIS * 2 + 1]);
+        servo[servo_endstops[Z_AXIS]].move(servo_endstop_angles[Z_AXIS * 2 + 1]);
       }
 
     #elif defined(Z_PROBE_ALLEN_KEY)
 
       // Move up for safety
       feedrate = Z_PROBE_ALLEN_KEY_STOW_1_FEEDRATE;
-      destination[Z_AXIS] = current_position[Z_AXIS] + Z_RAISE_AFTER_PROBING;
-      prepare_move_raw(); // this will also set_current_to_destination
+
+      #if Z_RAISE_AFTER_PROBING > 0
+        destination[Z_AXIS] = current_position[Z_AXIS] + Z_RAISE_AFTER_PROBING;
+        prepare_move_raw(); // this will also set_current_to_destination
+      #endif
 
       // Move to the start position to initiate retraction
       destination[X_AXIS] = Z_PROBE_ALLEN_KEY_STOW_1_X;
@@ -1493,8 +1508,8 @@ static void setup_for_endstop_move() {
   // Probe bed height at position (x,y), returns the measured z value
   static float probe_pt(float x, float y, float z_before, ProbeAction probe_action=ProbeDeployAndStow, int verbose_level=1) {
     // Move Z up to the z_before height, then move the probe to the given XY
-    do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS], z_before); // this also updates current_position
-    do_blocking_move_to(x - X_PROBE_OFFSET_FROM_EXTRUDER, y - Y_PROBE_OFFSET_FROM_EXTRUDER, current_position[Z_AXIS]); // this also updates current_position
+    do_blocking_move_to_z(z_before); // this also updates current_position
+    do_blocking_move_to_xy(x - X_PROBE_OFFSET_FROM_EXTRUDER, y - Y_PROBE_OFFSET_FROM_EXTRUDER); // this also updates current_position
 
     #if !defined(Z_PROBE_SLED) && !defined(Z_PROBE_ALLEN_KEY)
       if (probe_action & ProbeDeploy) deploy_z_probe();
@@ -1603,20 +1618,20 @@ static void setup_for_endstop_move() {
       return;
     }
 
+    float oldXpos = current_position[X_AXIS]; // save x position
     if (dock) {
-      float oldXpos = current_position[X_AXIS]; // save x position
-      do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS] + Z_RAISE_AFTER_PROBING); // rise Z   
-      do_blocking_move_to(X_MAX_POS + SLED_DOCKING_OFFSET + offset - 1, current_position[Y_AXIS], current_position[Z_AXIS]);  // Dock sled a bit closer to ensure proper capturing                                                                                                                           
+      #if Z_RAISE_AFTER_PROBING > 0
+        do_blocking_move_to_z(current_position[Z_AXIS] + Z_RAISE_AFTER_PROBING); // raise Z
+      #endif
+      do_blocking_move_to_x(X_MAX_POS + SLED_DOCKING_OFFSET + offset - 1);  // Dock sled a bit closer to ensure proper capturing
       digitalWrite(SLED_PIN, LOW); // turn off magnet
-      do_blocking_move_to(oldXpos, current_position[Y_AXIS], current_position[Z_AXIS]); // return to position before docking
     } else {
-      float oldXpos = current_position[X_AXIS]; // save x position
       float z_loc = current_position[Z_AXIS];
       if (z_loc < Z_RAISE_BEFORE_PROBING + 5) z_loc = Z_RAISE_BEFORE_PROBING;
       do_blocking_move_to(X_MAX_POS + SLED_DOCKING_OFFSET + offset, current_position[Y_AXIS], z_loc); // this also updates current_position
       digitalWrite(SLED_PIN, HIGH); // turn on magnet
-      do_blocking_move_to(oldXpos, current_position[Y_AXIS], current_position[Z_AXIS]); // return to position before docking
     }
+    do_blocking_move_to_x(oldXpos); // return to position before docking
   }
 
 #endif // Z_PROBE_SLED
@@ -1664,8 +1679,8 @@ static void homeaxis(AxisEnum axis) {
     #ifdef SERVO_ENDSTOPS
       if (axis != Z_AXIS) {
         // Engage Servo endstop if enabled
-        if (servo_endstops[axis] > -1)
-          servo[servo_endstops[axis]].move(0, servo_endstop_angles[axis * 2]);
+        if (servo_endstops[axis] >= 0) 
+          servo[servo_endstops[axis]].move(servo_endstop_angles[axis * 2]);
       }
     #endif
 
@@ -1767,8 +1782,8 @@ static void homeaxis(AxisEnum axis) {
     {
       #ifdef SERVO_ENDSTOPS
         // Retract Servo endstop if enabled
-        if (servo_endstops[axis] > -1)
-          servo[servo_endstops[axis]].move(0, servo_endstop_angles[axis * 2 + 1]);
+        if (servo_endstops[axis] >= 0)
+          servo[servo_endstops[axis]].move(servo_endstop_angles[axis * 2 + 1]);
       #endif
     }
 
@@ -2743,11 +2758,32 @@ inline void gcode_G28() {
         float x_tmp = current_position[X_AXIS] + X_PROBE_OFFSET_FROM_EXTRUDER,
               y_tmp = current_position[Y_AXIS] + Y_PROBE_OFFSET_FROM_EXTRUDER,
               z_tmp = current_position[Z_AXIS],
-              real_z = st_get_position_mm(Z_AXIS);  //get the real Z (since the auto bed leveling is already correcting the plane)
+              real_z = st_get_position_mm(Z_AXIS);  //get the real Z (since plan_get_position is now correcting the plane)
 
         apply_rotation_xyz(plan_bed_level_matrix, x_tmp, y_tmp, z_tmp); // Apply the correction sending the probe offset
-        //line below controls z probe offset, zprobe_zoffset is the actual offset that can be modified via m851 or is read from EEPROM
-        current_position[Z_AXIS] = z_tmp - real_z - zprobe_zoffset; // The difference is added to current position and sent to planner.
+
+        // Get the current Z position and send it to the planner.
+        //
+        // >> (z_tmp - real_z) : The rotated current Z minus the uncorrected Z (most recent plan_set_position/sync_plan_position)
+        //
+        // >> zprobe_zoffset : Z distance from nozzle to probe (set by default, M851, EEPROM, or Menu)
+        //
+        // >> Z_RAISE_AFTER_PROBING : The distance the probe will have lifted after the last probe
+        //
+        // >> Should home_offset[Z_AXIS] be included?
+        //
+        //      Discussion: home_offset[Z_AXIS] was applied in G28 to set the starting Z.
+        //      If Z is not tweaked in G29 -and- the Z probe in G29 is not actually "homing" Z...
+        //      then perhaps it should not be included here. The purpose of home_offset[] is to
+        //      adjust for inaccurate endstops, not for reasonably accurate probes. If it were
+        //      added here, it could be seen as a compensating factor for the Z probe.
+        //
+        current_position[Z_AXIS] = -zprobe_zoffset + (z_tmp - real_z)
+          #if defined(SERVO_ENDSTOPS) || ENABLED(Z_PROBE_ALLEN_KEY) || ENABLED(Z_PROBE_SLED)
+             + Z_RAISE_AFTER_PROBING
+          #endif
+          ;
+        // current_position[Z_AXIS] += home_offset[Z_AXIS]; // The probe determines Z=0, not "Z home"
         sync_plan_position();
       }
     #endif // !DELTA
@@ -3047,7 +3083,7 @@ inline void gcode_M42() {
     if (code_seen('P') && pin_status >= 0 && pin_status <= 255)
       pin_number = code_value_short();
 
-    for (int8_t i = 0; i < (int8_t)(sizeof(sensitive_pins) / sizeof(*sensitive_pins)); i++) {
+    for (int8_t i = 0; i < COUNT(sensitive_pins); i++) {
       if (sensitive_pins[i] == pin_number) {
         pin_number = -1;
         break;
@@ -3687,11 +3723,6 @@ inline void gcode_M140() {
  */
 inline void gcode_M81() {
   disable_all_heaters();
-  st_synchronize();
-  disable_e0();
-  disable_e1();
-  disable_e2();
-  disable_e3();
   finishAndDisableSteppers();
   fanSpeed = 0;
   delay(1000); // Wait 1 second before switching off
@@ -3731,11 +3762,6 @@ inline void gcode_M18_M84() {
   else {
     bool all_axis = !((code_seen(axis_codes[X_AXIS])) || (code_seen(axis_codes[Y_AXIS])) || (code_seen(axis_codes[Z_AXIS]))|| (code_seen(axis_codes[E_AXIS])));
     if (all_axis) {
-      st_synchronize();
-      disable_e0();
-      disable_e1();
-      disable_e2();
-      disable_e3();
       finishAndDisableSteppers();
     }
     else {
@@ -4197,7 +4223,7 @@ inline void gcode_M226() {
 
     if (pin_state >= -1 && pin_state <= 1) {
 
-      for (int8_t i = 0; i < (int8_t)(sizeof(sensitive_pins)/sizeof(*sensitive_pins)); i++) {
+      for (int8_t i = 0; i < COUNT(sensitive_pins); i++) {
         if (sensitive_pins[i] == pin_number) {
           pin_number = -1;
           break;
@@ -4242,10 +4268,8 @@ inline void gcode_M226() {
     int servo_position = 0;
     if (code_seen('S')) {
       servo_position = code_value_short();
-      if (servo_index >= 0 && servo_index < NUM_SERVOS) {
-        Servo *srv = &servo[servo_index];
-        srv->move(0, servo_position);
-      }
+      if (servo_index >= 0 && servo_index < NUM_SERVOS) 
+        servo[servo_index].move(servo_position);
       else {
         SERIAL_ECHO_START;
         SERIAL_ECHO("Servo ");
@@ -4553,8 +4577,7 @@ inline void gcode_M400() { st_synchronize(); }
     void raise_z_for_servo() {
       float zpos = current_position[Z_AXIS], z_dest = Z_RAISE_BEFORE_HOMING;
       z_dest += axis_known_position[Z_AXIS] ? zprobe_zoffset : zpos;
-      if (zpos < z_dest)
-        do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS], z_dest); // also updates current_position
+      if (zpos < z_dest) do_blocking_move_to_z(z_dest); // also updates current_position
     }
   #endif
 
@@ -5355,6 +5378,12 @@ void process_next_command() {
           gcode_M48();
           break;
       #endif // ENABLE_AUTO_BED_LEVELING && Z_PROBE_REPEATABILITY_TEST
+
+      #ifdef M100_FREE_MEMORY_WATCHER
+        case 100:
+          gcode_M100();
+          break;
+      #endif
 
       case 104: // M104
         gcode_M104();
