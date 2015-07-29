@@ -50,6 +50,14 @@
 // Define this to set a custom name for your generic Mendel,
 #define CUSTOM_MENDEL_NAME "Ez3D Phoenix"
 
+// If your Phoenix has a Z-Probe or Servo for ABL, then enable it here.
+//#define PHOENIX_Z_PROBE
+//#define PHOENIX_Z_SERVO
+
+#if defined(PHOENIX_Z_PROBE) && defined(PHOENIX_Z_SERVO)
+ #error "You can only have a Z-Probe or Z-Servo defined, not both."
+#endif
+
 // Define this to set a unique identifier for this printer, (Used by some programs to differentiate between machines)
 // You can use an online service to generate a random UUID. (eg http://www.uuidgenerator.net/version4)
 // #define MACHINE_UUID "00000000-0000-0000-0000-000000000000"
@@ -292,15 +300,22 @@ your extruder heater takes 2 minutes to hit the target on heating.
   //#define ENDSTOPPULLUP_XMIN
   //#define ENDSTOPPULLUP_YMIN
   #define ENDSTOPPULLUP_ZMIN
+  #ifdef PHOENIX_Z_PROBE
+   #undef ENDSTOPPULLUP_ZMIN
+  #endif
 #endif
 
 // The pullups are needed if you directly connect a mechanical endswitch between the signal and ground pins.
-const bool X_MIN_ENDSTOP_INVERTING = true; // set to true to invert the logic of the endstop.
-const bool Y_MIN_ENDSTOP_INVERTING = true; // set to true to invert the logic of the endstop.
-const bool Z_MIN_ENDSTOP_INVERTING = true; // set to true to invert the logic of the endstop.
-const bool X_MAX_ENDSTOP_INVERTING = true; // set to true to invert the logic of the endstop.
-const bool Y_MAX_ENDSTOP_INVERTING = true; // set to true to invert the logic of the endstop.
-const bool Z_MAX_ENDSTOP_INVERTING = true; // set to true to invert the logic of the endstop.
+const bool X_MIN_ENDSTOP_INVERTING = false; // set to true to invert the logic of the endstop.
+const bool Y_MIN_ENDSTOP_INVERTING = false; // set to true to invert the logic of the endstop.
+#ifdef PHOENIX_Z_PROBE
+  const bool Z_MIN_ENDSTOP_INVERTING = true;
+#else
+  const bool Z_MIN_ENDSTOP_INVERTING = false; // set to true to invert the logic of the endstop.
+#endif
+const bool X_MAX_ENDSTOP_INVERTING = false; // set to true to invert the logic of the endstop.
+const bool Y_MAX_ENDSTOP_INVERTING = false; // set to true to invert the logic of the endstop.
+const bool Z_MAX_ENDSTOP_INVERTING = false; // set to true to invert the logic of the endstop.
 //#define DISABLE_MAX_ENDSTOPS
 //#define DISABLE_MIN_ENDSTOPS
 
@@ -342,16 +357,30 @@ const bool Z_MAX_ENDSTOP_INVERTING = true; // set to true to invert the logic of
 #define X_MIN_POS 0
 #define Y_MIN_POS 0
 #define Z_MIN_POS 0
-#define X_MAX_POS 300
-#define Y_MAX_POS 195
-#define Z_MAX_POS 200
+#ifdef PHOENIX_Z_PROBE
+ #define X_MAX_POS 300
+ #define Y_MAX_POS 185
+ #define Z_MAX_POS 190
+ #elif defined(PHOENIX_Z_SERVO)
+  #define X_MAX_POS 250
+  #define Y_MAX_POS 200
+  #define Z_MAX_POS 200
+ #else
+  #define X_MAX_POS 300
+  #define Y_MAX_POS 200
+  #define Z_MAX_POS 200
+#endif
 
 #define X_MAX_LENGTH (X_MAX_POS - X_MIN_POS)
 #define Y_MAX_LENGTH (Y_MAX_POS - Y_MIN_POS)
 #define Z_MAX_LENGTH (Z_MAX_POS - Z_MIN_POS)
 //============================= Bed Auto Leveling ===========================
 
-//#define ENABLE_AUTO_BED_LEVELING // Delete the comment to enable (remove // at the start of the line)
+#if defined(PHOENIX_Z_PROBE) || defined(PHOENIX_Z_SERVO)
+ #define ENABLE_AUTO_BED_LEVELING // Delete the comment to enable (remove // at the start of the line)
+#else
+ #undef ENABLE_AUTO_BED_LEVELING
+#endif
 #define Z_PROBE_REPEATABILITY_TEST  // If not commented out, Z-Probe Repeatability test will be included if Auto Bed Leveling is Enabled.
 
 #ifdef ENABLE_AUTO_BED_LEVELING
@@ -376,10 +405,17 @@ const bool Z_MAX_ENDSTOP_INVERTING = true; // set to true to invert the logic of
   #ifdef AUTO_BED_LEVELING_GRID
 
     // set the rectangle in which to probe
-    #define LEFT_PROBE_BED_POSITION 15
-    #define RIGHT_PROBE_BED_POSITION 170
-    #define FRONT_PROBE_BED_POSITION 20
-    #define BACK_PROBE_BED_POSITION 170
+    #ifdef PHOENIX_Z_PROBE
+     #define LEFT_PROBE_BED_POSITION  55
+     #define RIGHT_PROBE_BED_POSITION 220
+     #define FRONT_PROBE_BED_POSITION 25
+     #define BACK_PROBE_BED_POSITION  120
+     #else
+      #define LEFT_PROBE_BED_POSITION  25
+      #define RIGHT_PROBE_BED_POSITION 125
+      #define FRONT_PROBE_BED_POSITION 25
+      #define BACK_PROBE_BED_POSITION  125
+    #endif
 
      // set the number of grid points per dimension
      // I wouldn't see a reason to go above 3 (=9 probing points on the bed)
@@ -402,9 +438,15 @@ const bool Z_MAX_ENDSTOP_INVERTING = true; // set to true to invert the logic of
 
   // these are the offsets to the probe relative to the extruder tip (Hotend - Probe)
   // X and Y offsets must be integers
-  #define X_PROBE_OFFSET_FROM_EXTRUDER -25     // Probe on: -left  +right
-  #define Y_PROBE_OFFSET_FROM_EXTRUDER -29     // Probe on: -front +behind
-  #define Z_PROBE_OFFSET_FROM_EXTRUDER -12.35  // -below (always!)
+  #ifdef PHOENIX_Z_PROBE
+   #define X_PROBE_OFFSET_FROM_EXTRUDER -27     // Probe on: -left  +right
+   #define Y_PROBE_OFFSET_FROM_EXTRUDER -60     // Probe on: -front +behind
+   #define Z_PROBE_OFFSET_FROM_EXTRUDER -1.40   // -below (always!)
+  #else
+   #define X_PROBE_OFFSET_FROM_EXTRUDER -70     // Probe on: -left  +right
+   #define Y_PROBE_OFFSET_FROM_EXTRUDER   0     // Probe on: -front +behind
+   #define Z_PROBE_OFFSET_FROM_EXTRUDER -4.6    // -below (always!)
+  #endif
 
   #define Z_RAISE_BEFORE_HOMING 4       // (in mm) Raise Z before homing (G28) for Probe Clearance.
                                         // Be sure you have this distance over your Z_MAX_POS in case
@@ -420,8 +462,12 @@ const bool Z_MAX_ENDSTOP_INVERTING = true; // set to true to invert the logic of
   //If defined, the Probe servo will be turned on only during movement and then turned off to avoid jerk
   //The value is the delay to turn the servo off after powered on - depends on the servo speed; 300ms is good value, but you can try lower it.
   // You MUST HAVE the SERVO_ENDSTOPS defined to use here a value higher than zero otherwise your code will not compile.
-
-//  #define PROBE_SERVO_DEACTIVATION_DELAY 300
+  
+  #ifdef PHOENIX_Z_SERVO
+   #define PROBE_SERVO_DEACTIVATION_DELAY 300
+  #else
+   #undef PROBE_SERVO_DEACTIVATION_DELAY
+  #endif
 
 
 //If you have enabled the Bed Auto Leveling and are using the same Z Probe for Z Homing,
@@ -439,29 +485,6 @@ const bool Z_MAX_ENDSTOP_INVERTING = true; // set to true to invert the logic of
     #define Z_SAFE_HOMING_X_POINT (X_MAX_LENGTH/2)    // X point for Z homing when homing all axis (G28)
     #define Z_SAFE_HOMING_Y_POINT (Y_MAX_LENGTH/2)    // Y point for Z homing when homing all axis (G28)
 
-  #endif
-
-  #ifdef AUTO_BED_LEVELING_GRID	// Check if Probe_Offset * Grid Points is greater than Probing Range
-    #if X_PROBE_OFFSET_FROM_EXTRUDER < 0
-      #if (-(X_PROBE_OFFSET_FROM_EXTRUDER * AUTO_BED_LEVELING_GRID_POINTS) >= (RIGHT_PROBE_BED_POSITION - LEFT_PROBE_BED_POSITION))
-	     #error "The X axis probing range is not enough to fit all the points defined in AUTO_BED_LEVELING_GRID_POINTS"
-	  #endif
-	#else
-      #if ((X_PROBE_OFFSET_FROM_EXTRUDER * AUTO_BED_LEVELING_GRID_POINTS) >= (RIGHT_PROBE_BED_POSITION - LEFT_PROBE_BED_POSITION))
-	     #error "The X axis probing range is not enough to fit all the points defined in AUTO_BED_LEVELING_GRID_POINTS"
-	  #endif
-	#endif
-    #if Y_PROBE_OFFSET_FROM_EXTRUDER < 0
-      #if (-(Y_PROBE_OFFSET_FROM_EXTRUDER * AUTO_BED_LEVELING_GRID_POINTS) >= (BACK_PROBE_BED_POSITION - FRONT_PROBE_BED_POSITION))
-	     #error "The Y axis probing range is not enough to fit all the points defined in AUTO_BED_LEVELING_GRID_POINTS"
-	  #endif
-	#else
-      #if ((Y_PROBE_OFFSET_FROM_EXTRUDER * AUTO_BED_LEVELING_GRID_POINTS) >= (BACK_PROBE_BED_POSITION - FRONT_PROBE_BED_POSITION))
-	     #error "The Y axis probing range is not enough to fit all the points defined in AUTO_BED_LEVELING_GRID_POINTS"
-	  #endif
-	#endif
-
-	
   #endif
   
 #endif // ENABLE_AUTO_BED_LEVELING
@@ -484,12 +507,13 @@ const bool Z_MAX_ENDSTOP_INVERTING = true; // set to true to invert the logic of
 
 // default settings
 
-#define DEFAULT_AXIS_STEPS_PER_UNIT   {80,80,4000,500}  // customized for Ez3D Phoenix
-#define DEFAULT_MAX_FEEDRATE          {300, 300, 5, 25}    // (mm/sec)
-#define DEFAULT_MAX_ACCELERATION      {3000,3000,100,10000}    // X, Y, Z, E maximum start speed for accelerated moves. E default values are good for Skeinforge 40+, for older versions raise them a lot.
+#define DEFAULT_AXIS_STEPS_PER_UNIT   {44.4444, 44.4444, 88.88888, 95}  // default steps per unit for Ultimaker
+#define DEFAULT_MAX_FEEDRATE          {200, 100, 150, 25}    // (mm/sec)
+#define DEFAULT_MAX_ACCELERATION      {1500, 500, 500, 10000}    // X, Y, Z, E maximum start speed for accelerated moves. E default values are good for Skeinforge 40+, for older versions raise them a lot.
 
-#define DEFAULT_ACCELERATION          1000    // X, Y, Z and E max acceleration in mm/s^2 for printing moves
-#define DEFAULT_RETRACT_ACCELERATION  3000   // X, Y, Z and E max acceleration in mm/s^2 for retracts
+#define DEFAULT_ACCELERATION          1000    // X, Y, Z and E acceleration in mm/s^2 for printing moves
+#define DEFAULT_RETRACT_ACCELERATION  3000   // E acceleration in mm/s^2 for retracts
+#define DEFAULT_TRAVEL_ACCELERATION   3000    // X, Y, Z acceleration in mm/s^2 for travel (non printing) moves
 
 // Offset of the extruders (uncomment if using more than one and relying on firmware to position when changing).
 // The offset has to be X=0, Y=0 for the extruder 0 hotend (default extruder).
@@ -750,15 +774,24 @@ const bool Z_MAX_ENDSTOP_INVERTING = true; // set to true to invert the logic of
 // leaving it undefined or defining as 0 will disable the servo subsystem
 // If unsure, leave commented / disabled
 //
-//#define NUM_SERVOS 3 // Servo index starts with 0 for M280 command
+#ifdef PHOENIX_Z_SERVO
+ #define NUM_SERVOS 1 // Servo index starts with 0 for M280 command
+#else
+ #undef NUM_SERVOS
+#endif
 
 // Servo Endstops
 //
 // This allows for servo actuated endstops, primary usage is for the Z Axis to eliminate calibration or bed height changes.
 // Use M206 command to correct for switch height offset to actual nozzle height. Store that setting with M500.
 //
-//#define SERVO_ENDSTOPS {-1, -1, 0} // Servo index for X, Y, Z. Disable with -1
-//#define SERVO_ENDSTOP_ANGLES {0,0, 0,0, 70,0} // X,Y,Z Axis Extend and Retract angles
+#ifdef PHOENIX_Z_SERVO
+ #define SERVO_ENDSTOPS {-1, -1, 0} // Servo index for X, Y, Z. Disable with -1
+ #define SERVO_ENDSTOP_ANGLES {0,0, 0,0, 88,29} // X,Y,Z Axis Extend and Retract angles
+#else
+ #undef SERVO_ENDSTOPS
+ #undef SERVO_ENDSTOP_ANGLES
+#endif
 
 /**********************************************************************\
  * Support for a filament diameter sensor

@@ -2,6 +2,21 @@
 # Ez3D Phoenix - Modified FW
 ===========================================
 
+## [1.0.0] - 2015-07-29
+### Merge
+- Reverting/Moving over Phoenix to Marlin Release branch.
+
+### Changed
+- The Phoenix branch will now track the Marlin Release branch to keep things as stable as possible.
+- Z-Probe and Z-Servo branches are now merged with this branch.
+
+### Notes:
+- You will need to modify Configuration.h to suit your Phoenix if you have a Z-Probe or Servo.
+- Just enable PHOENIX_Z_PROBE or PHOENIX_Z_SERVO according to your hardware.
+- I am making these changes from prior branches and not from actual hardware - so if you encounter
+- any issues, I ask that you contact me with your configuration and ready to diagnose as I no
+- longer have a Phoenix of my own to test with.
+
 ## [0.0.9-beta] - 2015-01-06
 ### Merge
 - Updated to the latest Marlin Firmware
