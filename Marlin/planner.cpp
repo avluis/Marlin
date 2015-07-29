@@ -58,12 +58,8 @@
 #include "ultralcd.h"
 #include "language.h"
 
-#if defined(MESH_BED_LEVELING)
-  #include "mesh_bed_leveling.h"
-#endif  // MESH_BED_LEVELING
-
 //===========================================================================
-//============================= public variables ============================
+//=============================public variables ============================
 //===========================================================================
 
 unsigned long minsegmenttime;
@@ -71,9 +67,8 @@ float max_feedrate[NUM_AXIS]; // set the max speeds
 float axis_steps_per_unit[NUM_AXIS];
 unsigned long max_acceleration_units_per_sq_second[NUM_AXIS]; // Use M201 to override by software
 float minimumfeedrate;
-float acceleration;         // Normal acceleration mm/s^2  THIS IS THE DEFAULT ACCELERATION for all printing moves. M204 SXXXX
+float acceleration;         // Normal acceleration mm/s^2  THIS IS THE DEFAULT ACCELERATION for all moves. M204 SXXXX
 float retract_acceleration; //  mm/s^2   filament pull-pack and push-forward  while standing still in the other axis M204 TXXXX
-float travel_acceleration;  // Travel acceleration mm/s^2  THIS IS THE DEFAULT ACCELERATION for all NON printing moves. M204 MXXXX
 float max_xy_jerk; //speed than can be stopped at once, if i understand correctly.
 float max_z_jerk;
 float max_e_jerk;
@@ -85,7 +80,7 @@ unsigned long axis_steps_per_sqr_second[NUM_AXIS];
 matrix_3x3 plan_bed_level_matrix = {
 	1.0, 0.0, 0.0,
 	0.0, 1.0, 0.0,
-	0.0, 0.0, 1.0
+	0.0, 0.0, 1.0,
 };
 #endif // #ifdef ENABLE_AUTO_BED_LEVELING
 
@@ -101,7 +96,7 @@ float autotemp_factor=0.1;
 bool autotemp_enabled=false;
 #endif
 
-unsigned char g_uc_extruder_last_move[4] = {0,0,0,0};
+unsigned char g_uc_extruder_last_move[3] = {0,0,0};
 
 //===========================================================================
 //=================semi-private variables, used in inline  functions    =====
@@ -491,7 +486,6 @@ void check_axes_activity()
     disable_e0();
     disable_e1();
     disable_e2(); 
-    disable_e3();
   }
 #if defined(FAN_PIN) && FAN_PIN > -1
   #ifdef FAN_KICKSTART_TIME
@@ -534,7 +528,7 @@ float junction_deviation = 0.1;
 // Add a new linear movement to the buffer. steps_x, _y and _z is the absolute position in 
 // mm. Microseconds specify how many microseconds the move should take to perform. To aid acceleration
 // calculation the caller must also provide the physical length of the line in millimeters.
-#if defined(ENABLE_AUTO_BED_LEVELING) || defined(MESH_BED_LEVELING)
+#ifdef ENABLE_AUTO_BED_LEVELING
 void plan_buffer_line(float x, float y, float z, const float &e, float feed_rate, const uint8_t &extruder)
 #else
 void plan_buffer_line(const float &x, const float &y, const float &z, const float &e, float feed_rate, const uint8_t &extruder)
@@ -551,12 +545,6 @@ void plan_buffer_line(const float &x, const float &y, const float &z, const floa
     manage_inactivity(); 
     lcd_update();
   }
-
-#if defined(MESH_BED_LEVELING)
-  if (mbl.active) {
-    z += mbl.get_z(x, y);
-  }
-#endif  // MESH_BED_LEVELING
 
 #ifdef ENABLE_AUTO_BED_LEVELING
   apply_rotation_xyz(plan_bed_level_matrix, x, y, z);
@@ -633,37 +621,29 @@ block->steps_y = labs((target[X_AXIS]-position[X_AXIS]) - (target[Y_AXIS]-positi
 #ifndef COREXY
   if (target[X_AXIS] < position[X_AXIS])
   {
-    block->direction_bits |= BIT(X_AXIS); 
+    block->direction_bits |= (1<<X_AXIS); 
   }
   if (target[Y_AXIS] < position[Y_AXIS])
   {
-    block->direction_bits |= BIT(Y_AXIS); 
+    block->direction_bits |= (1<<Y_AXIS); 
   }
 #else
-  if (target[X_AXIS] < position[X_AXIS])
-  {
-    block->direction_bits |= BIT(X_HEAD); //AlexBorro: Save the real Extruder (head) direction in X Axis
-  }
-  if (target[Y_AXIS] < position[Y_AXIS])
-  {
-    block->direction_bits |= BIT(Y_HEAD); //AlexBorro: Save the real Extruder (head) direction in Y Axis
-  }
   if ((target[X_AXIS]-position[X_AXIS]) + (target[Y_AXIS]-position[Y_AXIS]) < 0)
   {
-    block->direction_bits |= BIT(X_AXIS); //AlexBorro: Motor A direction (Incorrectly implemented as X_AXIS)
+    block->direction_bits |= (1<<X_AXIS); 
   }
   if ((target[X_AXIS]-position[X_AXIS]) - (target[Y_AXIS]-position[Y_AXIS]) < 0)
   {
-    block->direction_bits |= BIT(Y_AXIS); //AlexBorro: Motor B direction (Incorrectly implemented as Y_AXIS)
+    block->direction_bits |= (1<<Y_AXIS); 
   }
 #endif
   if (target[Z_AXIS] < position[Z_AXIS])
   {
-    block->direction_bits |= BIT(Z_AXIS); 
+    block->direction_bits |= (1<<Z_AXIS); 
   }
   if (target[E_AXIS] < position[E_AXIS])
   {
-    block->direction_bits |= BIT(E_AXIS); 
+    block->direction_bits |= (1<<E_AXIS); 
   }
 
   block->active_extruder = extruder;
@@ -692,7 +672,6 @@ block->steps_y = labs((target[X_AXIS]-position[X_AXIS]) - (target[Y_AXIS]-positi
       if(g_uc_extruder_last_move[0] > 0) g_uc_extruder_last_move[0]--;
       if(g_uc_extruder_last_move[1] > 0) g_uc_extruder_last_move[1]--;
       if(g_uc_extruder_last_move[2] > 0) g_uc_extruder_last_move[2]--;
-      if(g_uc_extruder_last_move[3] > 0) g_uc_extruder_last_move[3]--;
       
       switch(extruder)
       {
@@ -702,7 +681,6 @@ block->steps_y = labs((target[X_AXIS]-position[X_AXIS]) - (target[Y_AXIS]-positi
           
           if(g_uc_extruder_last_move[1] == 0) disable_e1(); 
           if(g_uc_extruder_last_move[2] == 0) disable_e2(); 
-          if(g_uc_extruder_last_move[3] == 0) disable_e3(); 
         break;
         case 1:
           enable_e1(); 
@@ -710,7 +688,6 @@ block->steps_y = labs((target[X_AXIS]-position[X_AXIS]) - (target[Y_AXIS]-positi
           
           if(g_uc_extruder_last_move[0] == 0) disable_e0(); 
           if(g_uc_extruder_last_move[2] == 0) disable_e2(); 
-          if(g_uc_extruder_last_move[3] == 0) disable_e3(); 
         break;
         case 2:
           enable_e2(); 
@@ -718,15 +695,6 @@ block->steps_y = labs((target[X_AXIS]-position[X_AXIS]) - (target[Y_AXIS]-positi
           
           if(g_uc_extruder_last_move[0] == 0) disable_e0(); 
           if(g_uc_extruder_last_move[1] == 0) disable_e1(); 
-          if(g_uc_extruder_last_move[3] == 0) disable_e3(); 
-        break;        
-        case 3:
-          enable_e3(); 
-          g_uc_extruder_last_move[3] = BLOCK_BUFFER_SIZE*2;
-          
-          if(g_uc_extruder_last_move[0] == 0) disable_e0(); 
-          if(g_uc_extruder_last_move[1] == 0) disable_e1(); 
-          if(g_uc_extruder_last_move[2] == 0) disable_e2(); 
         break;        
       }
     }
@@ -734,8 +702,7 @@ block->steps_y = labs((target[X_AXIS]-position[X_AXIS]) - (target[Y_AXIS]-positi
     {
       enable_e0();
       enable_e1();
-      enable_e2();
-      enable_e3();
+      enable_e2(); 
     }
   }
 
@@ -874,7 +841,7 @@ Having the real displacement of the head, we can calculate the total movement le
   old_direction_bits = block->direction_bits;
   segment_time = lround((float)segment_time / speed_factor);
   
-  if((direction_change & BIT(X_AXIS)) == 0)
+  if((direction_change & (1<<X_AXIS)) == 0)
   {
     x_segment_time[0] += segment_time;
   }
@@ -884,7 +851,7 @@ Having the real displacement of the head, we can calculate the total movement le
     x_segment_time[1] = x_segment_time[0];
     x_segment_time[0] = segment_time;
   }
-  if((direction_change & BIT(Y_AXIS)) == 0)
+  if((direction_change & (1<<Y_AXIS)) == 0)
   {
     y_segment_time[0] += segment_time;
   }
@@ -899,7 +866,7 @@ Having the real displacement of the head, we can calculate the total movement le
   long min_xy_segment_time =min(max_x_segment_time, max_y_segment_time);
   if(min_xy_segment_time < MAX_FREQ_TIME)
     speed_factor = min(speed_factor, speed_factor * (float)min_xy_segment_time / (float)MAX_FREQ_TIME);
-#endif // XY_FREQUENCY_LIMIT
+#endif
 
   // Correct the speed  
   if( speed_factor < 1.0)
@@ -918,24 +885,19 @@ Having the real displacement of the head, we can calculate the total movement le
   {
     block->acceleration_st = ceil(retract_acceleration * steps_per_mm); // convert to: acceleration steps/sec^2
   }
-  else if(block->steps_e == 0)
-  {
-    block->acceleration_st = ceil(travel_acceleration * steps_per_mm); // convert to: acceleration steps/sec^2
-  }
   else
   {
     block->acceleration_st = ceil(acceleration * steps_per_mm); // convert to: acceleration steps/sec^2
+    // Limit acceleration per axis
+    if(((float)block->acceleration_st * (float)block->steps_x / (float)block->step_event_count) > axis_steps_per_sqr_second[X_AXIS])
+      block->acceleration_st = axis_steps_per_sqr_second[X_AXIS];
+    if(((float)block->acceleration_st * (float)block->steps_y / (float)block->step_event_count) > axis_steps_per_sqr_second[Y_AXIS])
+      block->acceleration_st = axis_steps_per_sqr_second[Y_AXIS];
+    if(((float)block->acceleration_st * (float)block->steps_e / (float)block->step_event_count) > axis_steps_per_sqr_second[E_AXIS])
+      block->acceleration_st = axis_steps_per_sqr_second[E_AXIS];
+    if(((float)block->acceleration_st * (float)block->steps_z / (float)block->step_event_count ) > axis_steps_per_sqr_second[Z_AXIS])
+      block->acceleration_st = axis_steps_per_sqr_second[Z_AXIS];
   }
-  // Limit acceleration per axis
-  if(((float)block->acceleration_st * (float)block->steps_x / (float)block->step_event_count) > axis_steps_per_sqr_second[X_AXIS])
-    block->acceleration_st = axis_steps_per_sqr_second[X_AXIS];
-  if(((float)block->acceleration_st * (float)block->steps_y / (float)block->step_event_count) > axis_steps_per_sqr_second[Y_AXIS])
-    block->acceleration_st = axis_steps_per_sqr_second[Y_AXIS];
-  if(((float)block->acceleration_st * (float)block->steps_e / (float)block->step_event_count) > axis_steps_per_sqr_second[E_AXIS])
-    block->acceleration_st = axis_steps_per_sqr_second[E_AXIS];
-  if(((float)block->acceleration_st * (float)block->steps_z / (float)block->step_event_count ) > axis_steps_per_sqr_second[Z_AXIS])
-    block->acceleration_st = axis_steps_per_sqr_second[Z_AXIS];
- 
   block->acceleration = block->acceleration_st / steps_per_mm;
   block->acceleration_rate = (long)((float)block->acceleration_st * (16777216.0 / (F_CPU / 8.0)));
 
@@ -1073,7 +1035,7 @@ Having the real displacement of the head, we can calculate the total movement le
   st_wake_up();
 }
 
-#if defined(ENABLE_AUTO_BED_LEVELING) && not defined(DELTA)
+#ifdef ENABLE_AUTO_BED_LEVELING
 vector_3 plan_get_position() {
 	vector_3 position = vector_3(st_get_position_mm(X_AXIS), st_get_position_mm(Y_AXIS), st_get_position_mm(Z_AXIS));
 
@@ -1088,19 +1050,14 @@ vector_3 plan_get_position() {
 }
 #endif // ENABLE_AUTO_BED_LEVELING
 
-#if defined(ENABLE_AUTO_BED_LEVELING) || defined(MESH_BED_LEVELING)
+#ifdef ENABLE_AUTO_BED_LEVELING
 void plan_set_position(float x, float y, float z, const float &e)
+{
+  apply_rotation_xyz(plan_bed_level_matrix, x, y, z);
 #else
 void plan_set_position(const float &x, const float &y, const float &z, const float &e)
-#endif  // ENABLE_AUTO_BED_LEVELING || MESH_BED_LEVELING
 {
-#if defined(ENABLE_AUTO_BED_LEVELING)
-  apply_rotation_xyz(plan_bed_level_matrix, x, y, z);
-#elif defined(MESH_BED_LEVELING)
-  if (mbl.active) {
-    z += mbl.get_z(x, y);
-  }
-#endif  // ENABLE_AUTO_BED_LEVELING
+#endif // ENABLE_AUTO_BED_LEVELING
 
   position[X_AXIS] = lround(x*axis_steps_per_unit[X_AXIS]);
   position[Y_AXIS] = lround(y*axis_steps_per_unit[Y_AXIS]);

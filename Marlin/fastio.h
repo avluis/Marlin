@@ -13,7 +13,8 @@
 */
 
 #ifndef MASK
-  #define MASK(PIN)  (1 << PIN)
+/// MASKING- returns \f$2^PIN\f$
+#define MASK(PIN)  (1 << PIN)
 #endif
 
 /*
@@ -81,9 +82,6 @@
 
 /// check if pin is an timer wrapper
 #define GET_TIMER(IO)  _GET_TIMER(IO)
-
-// Shorthand
-#define OUT_WRITE(IO, v) { SET_OUTPUT(IO); WRITE(IO, v); }
 
 /*
 	ports and functions

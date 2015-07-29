@@ -82,24 +82,21 @@ void plan_init();
 // Add a new linear movement to the buffer. x, y and z is the signed, absolute target position in 
 // millimaters. Feed rate specifies the speed of the motion.
 
-#if defined(ENABLE_AUTO_BED_LEVELING) || defined(MESH_BED_LEVELING)
+#ifdef ENABLE_AUTO_BED_LEVELING
 void plan_buffer_line(float x, float y, float z, const float &e, float feed_rate, const uint8_t &extruder);
-#if defined(ENABLE_AUTO_BED_LEVELING)
-  #ifndef DELTA
-  // Get the position applying the bed level matrix if enabled
-  vector_3 plan_get_position();
-  #endif
-#endif  // ENABLE_AUTO_BED_LEVELING
+
+// Get the position applying the bed level matrix if enabled
+vector_3 plan_get_position();
 #else
 void plan_buffer_line(const float &x, const float &y, const float &z, const float &e, float feed_rate, const uint8_t &extruder);
-#endif  // ENABLE_AUTO_BED_LEVELING || MESH_BED_LEVELING
+#endif // ENABLE_AUTO_BED_LEVELING
 
 // Set position. Used for G92 instructions.
-#if defined(ENABLE_AUTO_BED_LEVELING) || defined(MESH_BED_LEVELING)
+#ifdef ENABLE_AUTO_BED_LEVELING
 void plan_set_position(float x, float y, float z, const float &e);
 #else
 void plan_set_position(const float &x, const float &y, const float &z, const float &e);
-#endif // ENABLE_AUTO_BED_LEVELING || MESH_BED_LEVELING
+#endif // ENABLE_AUTO_BED_LEVELING
 
 void plan_set_e_position(const float &e);
 
@@ -115,7 +112,6 @@ extern unsigned long max_acceleration_units_per_sq_second[NUM_AXIS]; // Use M201
 extern float minimumfeedrate;
 extern float acceleration;         // Normal acceleration mm/s^2  THIS IS THE DEFAULT ACCELERATION for all moves. M204 SXXXX
 extern float retract_acceleration; //  mm/s^2   filament pull-pack and push-forward  while standing still in the other axis M204 TXXXX
-extern float travel_acceleration;  // Travel acceleration mm/s^2  THIS IS THE DEFAULT ACCELERATION for all NON printing moves. M204 MXXXX
 extern float max_xy_jerk; //speed than can be stopped at once, if i understand correctly.
 extern float max_z_jerk;
 extern float max_e_jerk;
