@@ -2257,7 +2257,7 @@ DaveX plan for Teensylu/printrboard-type pinouts (ref teensylu & sprinter) for a
 
 #endif
 
-#if MOTHERBOARD == 301
+#if MOTHERBOARD == 301 || MOTHERBOARD == 302
 #define KNOWN_BOARD
 /*****************************************************************
 * Rambo Pin Assignments
@@ -2275,9 +2275,9 @@ DaveX plan for Teensylu/printrboard-type pinouts (ref teensylu & sprinter) for a
     #define SERVO1_PIN     23 //Motor header MX2
     #if NUM_SERVOS > 2
       #define SERVO2_PIN   24 //Motor header MX3
-//      #if NUM_SERVOS > 3
-//        #define SERVO2_PIN  5 //pwm header pin 5
-//      #endif
+      #if NUM_SERVOS > 3
+        #define SERVO2_PIN  5 //pwm header pin 5
+      #endif
     #endif
   #endif
 #endif
@@ -2330,7 +2330,12 @@ DaveX plan for Teensylu/printrboard-type pinouts (ref teensylu & sprinter) for a
 #define Z_MS2_PIN 67
 
 #define HEATER_BED_PIN 3
+
+#if MOTHERBOARD == 302
+#define TEMP_BED_PIN 7
+  #else
 #define TEMP_BED_PIN 2
+#endif
 
 #define HEATER_0_PIN  9
 #define TEMP_0_PIN 0
@@ -2365,14 +2370,20 @@ DaveX plan for Teensylu/printrboard-type pinouts (ref teensylu & sprinter) for a
 #define SDPOWER            -1
 #define SDSS               53
 #define LED_PIN            13
-#define FAN_PIN            6 //2  MOSFET is turning on the fan when off on FAN 2 pin so using FAN 1 instead
 
 /**********************************************************
-  Fan Pins
-  Fan_0 8
-  Fan_1 6
-  Fan_2 2
-***********************************************************/
+ Fan Pins
+ Fan_0 8
+ Fan_1 6
+ Fan_2 2
+ ***********************************************************/
+
+#if MOTHERBOARD == 302
+#define FAN_PIN            -1
+  #else
+#define FAN_PIN            8
+#endif
+
 #define PS_ON_PIN          4
 #define KILL_PIN           -1 //80 with Smart Controller LCD
 #define SUICIDE_PIN        -1  //PIN that has to be turned on right after start, to keep power flowing.
